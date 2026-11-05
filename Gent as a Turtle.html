@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Turtle Portfolio</title>
+    <!-- Tailwind CSS for utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        turtle: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#052e16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #09130e;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(22, 163, 74, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(5, 46, 22, 0.3) 0px, transparent 50%);
+            color: #e2e8f0;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Smooth transformation viewport for the turtle canvas */
+        #viewport {
+            perspective: 1200px;
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: center center;
+        }
+
+        /* Scute / Shell Tile Hover & Visual Styles */
+        .scute {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+        }
+
+        .scute:hover {
+            transform: scale(1.04) translateY(-3px);
+            filter: drop-shadow(0 12px 20px rgba(34, 197, 94, 0.4));
+        }
+
+        .scute path {
+            transition: fill 0.3s ease, stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+
+        .scute:hover path {
+            fill: #166534 !important;
+            stroke: #4ade80 !important;
+            stroke-width: 3px !important;
+        }
+
+        /* Pulse animation for interactive indicator */
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+        }
+
+        .turtle-idle {
+            animation: subtle-pulse 4s ease-in-out infinite;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(13, 27, 19, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Custom Scrollbar for modal content */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(5, 46, 22, 0.2);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(34, 197, 94, 0.4);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(34, 197, 94, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans flex flex-col justify-between items-center relative select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full max-w-6xl mx-auto p-4 md:p-6 flex justify-between items-center z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-turtle-600/30 border border-turtle-400/40 flex items-center justify-center text-turtle-400 font-bold text-xl">
+                <i class="fa-solid font-bold fa-turtle"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg md:text-xl tracking-tight text-white">Gent's Portfolio</h1>
+                <p class="text-xs text-turtle-400 font-medium">Interactive Journey through the Shell</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-turtle-950/80 text-turtle-400 border border-turtle-800/60">
+                <span class="w-2 h-2 rounded-full bg-turtle-400 animate-ping"></span>
+                Click shell tiles to explore
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Turtle Canvas Container -->
+    <main class="w-full flex-1 flex items-center justify-center relative my-4 p-2">
+        <div id="viewport" class="w-full max-w-2xl aspect-square flex items-center justify-center">
+            
+            <svg id="turtle-svg" viewBox="0 0 600 600" class="w-full h-full turtle-idle filter drop-shadow-2xl">
+                <defs>
+                    <!-- Shell Gradients -->
+                    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#15803d" />
+                        <stop offset="100%" stop-color="#052e16" />
+                    </linearGradient>
+
+                    <linearGradient id="scuteGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#14532d" />
+                        <stop offset="100%" stop-color="#09130e" />
+                    </linearGradient>
+
+                    <linearGradient id="scuteGradCenter" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#166534" />
+                        <stop offset="100%" stop-color="#052e16" />
+                    </linearGradient>
+                    
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="8" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                </defs>
+
+                <!-- TURTLE BODY (Flippers, Head, Tail) -->
+                <g id="turtle-body" fill="url(#skinGrad)" stroke="#22c55e" stroke-width="1.5">
+                    <!-- Front Left Flipper -->
+                    <path d="M 210,210 C 120,130 50,140 40,190 C 35,220 90,260 190,265 Z" class="transition-all duration-500"/>
+                    <!-- Front Right Flipper -->
+                    <path d="M 390,210 C 480,130 550,140 560,190 C 565,220 510,260 410,265 Z" class="transition-all duration-500"/>
+                    <!-- Back Left Flipper -->
+                    <path d="M 220,380 C 150,440 100,470 110,500 C 125,520 170,490 235,430 Z" />
+                    <!-- Back Right Flipper -->
+                    <path d="M 380,380 C 450,440 500,470 490,500 C 475,520 430,490 365,430 Z" />
+                    <!-- Tail -->
+                    <path d="M 290,460 L 300,510 L 310,460 Z" />
+                    <!-- Head -->
+                    <g id="turtle-head">
+                        <path d="M 260,170 C 260,80 275,50 300,50 C 325,50 340,80 340,170 Z" />
+                        <!-- Eyes -->
+                        <circle cx="268" cy="80" r="4" fill="#4ade80" stroke="none" />
+                        <circle cx="332" cy="80" r="4" fill="#4ade80" stroke="none" />
+                    </g>
+                </g>
+
+                <!-- TURTLE CARAPACE (Outer Shell Border) -->
+                <path d="M 300,150 Q 440,150 450,300 Q 440,460 300,460 Q 160,460 150,300 Q 160,150 300,150 Z" 
+                      fill="#0b2416" stroke="#22c55e" stroke-width="3" />
+
+                <!-- INTERACTIVE SHELL SCUTES / TILES -->
+                <g id="shell-tiles">
+                    
+                    <!-- 1. CENTER SCUTE: Deeper Look -->
+                    <g class="scute" id="tile-deeper-look" onclick="zoomToTile('tile-deeper-look', 'deeperLook')">
+                        <polygon points="300,220 350,260 350,320 300,360 250,320 250,260" 
+                                 fill="url(#scuteGradCenter)" stroke="#34d399" stroke-width="2"/>
+                        <foreignObject x="250" y="245" width="100" height="90">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-compass text-turtle-400 text-lg mb-1"></i>
+                                <span class="text-[10px] font-extrabold text-white uppercase tracking-wider leading-tight">Deeper Look</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                    <!-- 2. TOP SCUTE: early life Gent -->
+                    <g class="scute" id="tile-early-life" onclick="zoomToTile('tile-early-life', 'earlyLife')">
+                        <polygon points="300,160 340,180 350,260 300,220 250,260 260,180" 
+                                 fill="url(#scuteGrad1)" stroke="#22c55e" stroke-width="1.5"/>
+                        <foreignObject x="260" y="170" width="80" height="70">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-child text-turtle-400 text-base mb-0.5"></i>
+                                <span class="text-[9px] font-extrabold text-white uppercase tracking-wider leading-tight">early life Gent</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                    <!-- 3. TOP-RIGHT SCUTE: baby Gent in EYP -->
+                    <g class="scute" id="tile-eyp" onclick="zoomToTile('tile-eyp', 'eyp')">
+                        <polygon points="340,180 420,210 430,270 350,320 350,260" 
+                                 fill="url(#scuteGrad1)" stroke="#22c55e" stroke-width="1.5"/>
+                        <foreignObject x="345" y="215" width="80" height="80">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-people-group text-turtle-400 text-base mb-1"></i>
+                                <span class="text-[9px] font-extrabold text-white uppercase tracking-wider leading-tight">baby Gent in EYP</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                    <!-- 4. BOTTOM-RIGHT SCUTE: gent as a tech bro -->
+                    <g class="scute" id="tile-tech-bro" onclick="zoomToTile('tile-tech-bro', 'techBro')">
+                        <polygon points="350,320 430,270 420,380 340,410 300,360" 
+                                 fill="url(#scuteGrad1)" stroke="#22c55e" stroke-width="1.5"/>
+                        <foreignObject x="340" y="315" width="80" height="80">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-laptop-code text-turtle-400 text-base mb-1"></i>
+                                <span class="text-[9px] font-extrabold text-white uppercase tracking-wider leading-tight">gent as a tech bro</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                    <!-- 5. BOTTOM-LEFT SCUTE: present Gent -->
+                    <g class="scute" id="tile-present-gent" onclick="zoomToTile('tile-present-gent', 'presentGent')">
+                        <polygon points="250,320 300,360 260,410 180,380 170,270" 
+                                 fill="url(#scuteGrad1)" stroke="#22c55e" stroke-width="1.5"/>
+                        <foreignObject x="180" y="305" width="80" height="80">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-clock-rotate-left text-turtle-400 text-base mb-1"></i>
+                                <span class="text-[9px] font-extrabold text-white uppercase tracking-wider leading-tight">present Gent</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                    <!-- 6. TOP-LEFT SCUTE: Hobbies -->
+                    <g class="scute" id="tile-hobbies" onclick="zoomToTile('tile-hobbies', 'hobbies')">
+                        <polygon points="260,180 250,260 250,320 170,270 180,210" 
+                                 fill="url(#scuteGrad1)" stroke="#22c55e" stroke-width="1.5"/>
+                        <foreignObject x="175" y="215" width="80" height="80">
+                            <div class="h-full flex flex-col items-center justify-center text-center p-1 pointer-events-none">
+                                <i class="fa-solid fa-icons text-turtle-400 text-base mb-1"></i>
+                                <span class="text-[9px] font-extrabold text-white uppercase tracking-wider leading-tight">Hobbies</span>
+                            </div>
+                        </foreignObject>
+                    </g>
+
+                </g>
+            </svg>
+
+        </div>
+    </main>
+
+    <!-- Footer Instructions -->
+    <footer class="w-full max-w-6xl mx-auto p-4 text-center text-xs text-emerald-500/60 z-10">
+        <p>© <span id="year"></span> Gent • Powered by HTML5, SVG & Tailwind</p>
+    </footer>
+
+    <!-- CONTENT MODAL (Glassmorphism Popup) -->
+    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-500">
+        <!-- Backdrop Overlay -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md" onclick="resetZoom()"></div>
+
+        <!-- Modal Box -->
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 md:p-8 relative z-10 transform scale-90 transition-all duration-500 flex flex-col max-h-[85vh] border border-turtle-500/30">
+            
+            <!-- Close Button -->
+            <button onclick="resetZoom()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-turtle-950/80 border border-turtle-500/40 text-turtle-400 hover:text-white hover:bg-turtle-800 transition-all flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="flex items-center gap-3 mb-6 border-b border-turtle-800/60 pb-4">
+                <div id="modal-icon-bg" class="w-12 h-12 rounded-xl bg-turtle-800/40 border border-turtle-400/40 flex items-center justify-center text-turtle-400 text-xl">
+                    <i id="modal-icon" class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                    <h2 id="modal-title" class="text-2xl font-extrabold text-white tracking-tight">Section Title</h2>
+                    <p id="modal-subtitle" class="text-xs text-turtle-400 font-medium">Subtitle information goes here</p>
+                </div>
+            </div>
+
+            <!-- Modal Dynamic Content Body -->
+            <div id="modal-body" class="overflow-y-auto custom-scrollbar pr-2 text-sm text-gray-300 space-y-4 leading-relaxed">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- Modal Action Footer -->
+            <div class="mt-6 pt-4 border-t border-turtle-800/60 flex justify-end">
+                <button onclick="resetZoom()" class="px-5 py-2.5 rounded-xl bg-turtle-600 hover:bg-turtle-500 text-white font-semibold text-xs transition-all flex items-center gap-2 shadow-lg shadow-turtle-900/50">
+                    <span>Back to Turtle View</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Controller Logic -->
+    <script>
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        // Gent's Custom Portfolio Data Store
+        const gentData = {
+            earlyLife: {
+                title: "early life Gent",
+                subtitle: "Rooted in Curiosity & Early Beginnings",
+                icon: "fa-child",
+                content: `
+                    <p>Growing up, Gent was defined by endless curiosity about how the world works. From taking apart gadgets to asking relentless questions, the early years laid down a solid foundation of resilience, creativity, and adaptability.</p>
+                    <div class="bg-turtle-950/60 border border-turtle-800/80 p-3.5 rounded-xl mt-3">
+                        <h4 class="text-xs font-bold text-turtle-400 uppercase tracking-wider mb-1">Key Milestones</h4>
+                        <ul class="list-disc list-inside text-xs space-y-1 text-gray-300">
+                            <li>Early fascination with technology and problem-solving</li>
+                            <li>Building strong foundations in team dynamics and leadership</li>
+                            <li>Always eager to learn new things beyond the classroom</li>
+                        </ul>
+                    </div>
+                `
+            },
+            eyp: {
+                title: "baby Gent in EYP",
+                subtitle: "Debates, Youth Leadership & International Experience",
+                icon: "fa-people-group",
+                content: `
+                    <p>Gent's journey in the <strong>European Youth Parliament (EYP)</strong> was a pivotal phase. Stepping into international conferences, resolution writing, and debates sharpened soft skills and opened up global perspectives.</p>
+                    <div class="space-y-3 mt-3">
+                        <div class="bg-turtle-950/60 border border-turtle-800/80 p-3 rounded-xl">
+                            <h4 class="font-bold text-white text-xs">Youth Diplomacy & Debating</h4>
+                            <p class="text-xs text-gray-400 mt-0.5">Engaged in parliamentary discussions, resolving complex socio-political challenges with international peers.</p>
+                        </div>
+                        <div class="bg-turtle-950/60 border border-turtle-800/80 p-3 rounded-xl">
+                            <h4 class="font-bold text-white text-xs">Soft Skills & Public Speaking</h4>
+                            <p class="text-xs text-gray-400 mt-0.5">Mastered active listening, persuasive argumentation, team consensus building, and event coordination.</p>
+                        </div>
+                    </div>
+                `
+            },
+            deeperLook: {
+                title: "Deeper Look",
+                subtitle: "Personal Philosophy, Values & Core Traits",
+                icon: "fa-compass",
+                content: `
+                    <p>Beyond the resume, this is what makes Gent tick: a drive to build meaningful things, stay authentic, and continuously evolve.</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs mt-3">
+                        <div class="bg-turtle-950/80 border border-turtle-800/80 p-2.5 rounded-lg">
+                            <span class="font-bold text-turtle-400 block mb-1">🎯 Growth Mindset</span>
+                            Viewing every challenge as an opportunity to iterate and improve.
+                        </div>
+                        <div class="bg-turtle-950/80 border border-turtle-800/80 p-2.5 rounded-lg">
+                            <span class="font-bold text-turtle-400 block mb-1">🤝 Collaboration</span>
+                            Believing that the best outcomes emerge when working with passionate teams.
+                        </div>
+                        <div class="bg-turtle-950/80 border border-turtle-800/80 p-2.5 rounded-lg">
+                            <span class="font-bold text-turtle-400 block mb-1">💡 Integrity</span>
+                            Staying true to core values, transparency, and accountability in all projects.
+                        </div>
+                        <div class="bg-turtle-950/80 border border-turtle-800/80 p-2.5 rounded-lg">
+                            <span class="font-bold text-turtle-400 block mb-1">🔥 Curiosity</span>
+                            Never losing the spark for discovering new technologies and ideas.
+                        </div>
+                    </div>
+                `
+            },
+            hobbies: {
+                title: "Hobbies",
+                subtitle: "Passions & What Gent Loves Outside Work",
+                icon: "fa-icons",
+                content: `
+                    <p class="text-xs mb-3">When not writing code or building projects, Gent stays energized through diverse interests:</p>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="flex items-center gap-3 bg-turtle-950/60 p-3 rounded-xl border border-turtle-800/60">
+                            <i class="fa-solid fa-music text-turtle-400 text-lg"></i>
+                            <div>
+                                <h5 class="font-bold text-white">Music & Playlists</h5>
+                                <p class="text-[10px] text-gray-400">Discovering new genres and tunes.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-turtle-950/60 p-3 rounded-xl border border-turtle-800/60">
+                            <i class="fa-solid fa-dumbbell text-turtle-400 text-lg"></i>
+                            <div>
+                                <h5 class="font-bold text-white">Fitness & Sports</h5>
+                                <p class="text-[10px] text-gray-400">Staying active and focused.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-turtle-950/60 p-3 rounded-xl border border-turtle-800/60">
+                            <i class="fa-solid fa-plane text-turtle-400 text-lg"></i>
+                            <div>
+                                <h5 class="font-bold text-white">Travel & Exploration</h5>
+                                <p class="text-[10px] text-gray-400">Experiencing new places and cultures.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-turtle-950/60 p-3 rounded-xl border border-turtle-800/60">
+                            <i class="fa-solid fa-book text-turtle-400 text-lg"></i>
+                            <div>
+                                <h5 class="font-bold text-white">Reading & Gaming</h5>
+                                <p class="text-[10px] text-gray-400">Unwinding with strategy and storytelling.</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            techBro: {
+                title: "gent as a tech bro",
+                subtitle: "Software Engineering, Code & Building Products",
+                icon: "fa-laptop-code",
+                content: `
+                    <p>The tech era of Gent: turning ideas into functional, sleek digital products. From hackathons to late-night coding sessions, building software is second nature.</p>
+                    <div class="space-y-3 mt-3">
+                        <div class="bg-turtle-950/60 border border-turtle-800/80 p-3 rounded-xl">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold text-white text-xs">Full Stack Development</h4>
+                                <span class="text-[10px] bg-turtle-900 text-turtle-300 px-2 py-0.5 rounded-full font-mono">JS / React / Node</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Building responsive web apps, APIs, and scalable user experiences.</p>
+                        </div>
+                        <div class="bg-turtle-950/60 border border-turtle-800/80 p-3 rounded-xl">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-bold text-white text-xs">Tech Innovations & Projects</h4>
+                                <span class="text-[10px] bg-turtle-900 text-turtle-300 px-2 py-0.5 rounded-full font-mono">Web Apps</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Exploring new frameworks, AI integrations, and high-performance frontend tools.</p>
+                        </div>
+                    </div>
+                `
+            },
+            presentGent: {
+                title: "present Gent",
+                subtitle: "Current Focus, Ambitions & How to Reach Out",
+                icon: "fa-clock-rotate-left",
+                content: `
+                    <p class="text-xs mb-3">Where Gent stands today: focused on high-impact projects, pushing boundaries in technology, and open to exciting new opportunities.</p>
+                    <div class="bg-turtle-950/60 border border-turtle-800/80 p-3.5 rounded-xl mb-3">
+                        <h4 class="text-xs font-bold text-turtle-400 uppercase tracking-wider mb-1">Current Goals</h4>
+                        <p class="text-xs text-gray-300">Creating scalable applications, collaborating with great minds, and continuing to grow as a leader and engineer.</p>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <a href="mailto:gent@example.com" class="flex items-center gap-3 p-3 bg-turtle-950/80 hover:bg-turtle-900 border border-turtle-800/80 rounded-xl text-white transition-all">
+                            <i class="fa-solid fa-envelope text-turtle-400 text-base"></i>
+                            <span>Connect via Email</span>
+                        </a>
+                        <a href="https://linkedin.com" target="_blank" class="flex items-center gap-3 p-3 bg-turtle-950/80 hover:bg-turtle-900 border border-turtle-800/80 rounded-xl text-white transition-all">
+                            <i class="fa-brands fa-linkedin text-turtle-400 text-base"></i>
+                            <span>Gent on LinkedIn</span>
+                        </a>
+                    </div>
+                `
+            }
+        };
+
+        const viewport = document.getElementById('viewport');
+        const modalContainer = document.getElementById('modal-container');
+        const modalBox = modalContainer.querySelector('.glass-panel');
+
+        // Handles smoothly zooming into specific tile coordinates
+        function zoomToTile(tileId, key) {
+            const data = gentData[key];
+            if (!data) return;
+
+            // Coordinates mapping for optimal camera zoom offset relative to svg center (300, 300)
+            const zoomOffsets = {
+                'tile-deeper-look':   { scale: 2.2, x: 0,    y: 0 },
+                'tile-early-life':    { scale: 2.3, x: 0,    y: 120 },
+                'tile-eyp':           { scale: 2.3, x: -120, y: 80 },
+                'tile-tech-bro':      { scale: 2.3, x: -120, y: -80 },
+                'tile-present-gent':  { scale: 2.3, x: 120,  y: -80 },
+                'tile-hobbies':       { scale: 2.3, x: 120,  y: 80 }
+            };
+
+            const offset = zoomOffsets[tileId] || { scale: 2, x: 0, y: 0 };
+
+            // Apply SVG camera transform zoom
+            viewport.style.transform = `scale(${offset.scale}) translate(${offset.x}px, ${offset.y}px)`;
+
+            // Inject content into modal
+            document.getElementById('modal-title').innerText = data.title;
+            document.getElementById('modal-subtitle').innerText = data.subtitle;
+            document.getElementById('modal-icon').className = `fa-solid ${data.icon}`;
+            document.getElementById('modal-body').innerHTML = data.content;
+
+            // Display modal popup after zoom transition starts
+            setTimeout(() => {
+                modalContainer.classList.remove('opacity-0', 'pointer-events-none');
+                modalBox.classList.remove('scale-90');
+                modalBox.classList.add('scale-100');
+            }, 300);
+        }
+
+        // Resets camera back to default view
+        function resetZoom() {
+            // Hide modal
+            modalBox.classList.remove('scale-100');
+            modalBox.classList.add('scale-90');
+            modalContainer.classList.add('opacity-0', 'pointer-events-none');
+
+            // Reset viewport transformation smoothly
+            setTimeout(() => {
+                viewport.style.transform = 'scale(1) translate(0px, 0px)';
+            }, 150);
+        }
+
+        // Close modal when pressing ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') resetZoom();
+        });
+    </script>
+</body>
+</html>
